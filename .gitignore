@@ -1,0 +1,9 @@
+.env
+__pycache__/
+.DS_Store
+agent/results/
+Modelfile
+
+DEMO_SCRIPT.md
+NOTES.md
+ASSIGNMENT.md

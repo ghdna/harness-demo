@@ -1,0 +1,148 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Northstar Support · Helpdesk</title>
+<style>
+ :root{--ink:#1f2937;--mute:#6b7280;--line:#e5e7eb;--bg:#f7f8fa;--brand:#4f46e5;--side:#111827}
+ *{box-sizing:border-box} body{margin:0;font:14px/1.45 Inter,system-ui,sans-serif;color:var(--ink);background:var(--bg);display:flex;height:100vh}
+ a{color:inherit;text-decoration:none}
+ .side{width:220px;background:var(--side);color:#cbd5e1;padding:16px 10px;flex-shrink:0}
+ .logo{color:#fff;font-weight:700;font-size:16px;padding:4px 10px 18px}.logo span{color:#a5b4fc}
+ .side a{display:flex;justify-content:space-between;padding:7px 10px;border-radius:6px;margin:1px 0}
+ .side a:hover,.side a.on{background:#1f2937;color:#fff} .side h6{margin:18px 10px 6px;font-size:11px;letter-spacing:.06em;color:#64748b;text-transform:uppercase}
+ .cnt{background:#334155;border-radius:9px;padding:0 7px;font-size:12px}
+ .main{flex:1;display:flex;flex-direction:column;min-width:0}
+ .top{height:54px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 20px}
+ .search{flex:1;max-width:420px;border:1px solid var(--line);border-radius:8px;padding:7px 12px;background:var(--bg)}
+ .avatar{width:30px;height:30px;border-radius:50%;background:#c7d2fe;display:grid;place-items:center;font-weight:600;color:#3730a3}
+ .page{flex:1;overflow:auto;padding:20px}
+ .card{background:#fff;border:1px solid var(--line);border-radius:10px}
+ table{width:100%;border-collapse:collapse} th{font-size:12px;color:var(--mute);font-weight:500;text-align:left;padding:10px 14px;border-bottom:1px solid var(--line)}
+ td{padding:11px 14px;border-bottom:1px solid var(--line)} tr.row:hover{background:#fafafa}
+ .pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:500}
+ .open{background:#fee2e2;color:#991b1b}.pending{background:#fef3c7;color:#92400e}.solved{background:#dcfce7;color:#166534}
+ .p1{color:#b91c1c}.p2{color:#c2410c}.p3{color:#a16207}.p4{color:var(--mute)}
+ .btn{border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px 12px;cursor:pointer;font:inherit}
+ .btn:hover{background:#f3f4f6}.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+ .btn.sm{padding:3px 9px;font-size:12px}
+ .grid{display:grid;grid-template-columns:1fr 320px;gap:16px}
+ .msg{display:flex;gap:10px;padding:16px;border-bottom:1px solid var(--line)} .msg .who{font-weight:600}.msg .when{color:var(--mute);font-size:12px}
+ .panel{padding:16px;border-bottom:1px solid var(--line)} .panel h4{margin:0 0 10px;font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
+ .kv{display:flex;justify-content:space-between;padding:3px 0}.kv span:first-child{color:var(--mute)}
+ textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit;min-height:80px}
+ .toast{position:fixed;bottom:20px;right:20px;background:#111827;color:#fff;padding:10px 16px;border-radius:8px}
+ body.signedout .side,body.signedout .top{display:none} body.signedout .page{display:grid;place-items:center}
+ .login{width:360px;padding:28px} .login input{width:100%;border:1px solid var(--line);border-radius:6px;padding:9px;margin:4px 0 14px;font:inherit}
+ .crumbs{color:var(--mute);margin-bottom:12px}
+</style></head>
+<body>
+<nav class="side">
+  <div class="logo">✦ Northstar <span>Support</span></div>
+  <a href="#/" class="on">Inbox <span class="cnt" id="cnt">5</span></a>
+  <a href="#/">Assigned to me</a><a href="#/">Unassigned</a><a href="#/">All tickets</a>
+  <h6>Views</h6><a href="#/">Billing</a><a href="#/">Enterprise P1/P2</a><a href="#/">Waiting on customer</a>
+  <h6>Workspace</h6><a href="#/">Customers</a><a href="#/">Knowledge base</a><a href="#/">Reports</a><a href="#/">Settings</a>
+</nav>
+<main class="main">
+  <div class="top"><input class="search" placeholder="Search tickets, customers, charges…"><span style="margin-left:auto;color:var(--mute)">Online</span><div class="avatar">AK</div></div>
+  <div class="page" id="app"></div>
+</main>
+<script>
+// Fake backend with fictional Northstar tickets. State persists in localStorage.
+const fresh = () => ({
+  tickets: {
+    "NS-1001": {subject: "MFA login failure after phone replacement", customer: "Halcyon Health", segment: "Enterprise", contact: "Dana Ortiz", pri: "P2", status: "Open", area: "Identity", when: "Aug 3", arr: "$180,000",
+      body: "I replaced my phone yesterday. MFA setup completed on the new device, but every login now returns 'verification failed'. I am the workspace administrator and cannot access our tenant.", charges: []},
+    "NS-1002": {subject: "Duplicate subscription charge", customer: "Brightline Analytics", segment: "Pro", contact: "Priya Shah", pri: "P2", status: "Open", area: "Billing", when: "Aug 4", arr: "$36,000",
+      body: "Our August invoice shows two charges for the same Pro subscription. The card statement also has both charges posted. Please reverse the duplicate.",
+      charges: [
+        {id: "CH-4302", date: "Jul 1", desc: "Pro subscription · July",  amount: "$3,000.00", status: "Paid"},
+        {id: "CH-4417", date: "Aug 1", desc: "Pro subscription · August", amount: "$3,000.00", status: "Paid"},
+        {id: "CH-4418", date: "Aug 1", desc: "Pro subscription · August", amount: "$3,000.00", status: "Paid", flag: "Billing flag: duplicate charge"},
+        {id: "CH-4120", date: "Jun 1", desc: "Pro subscription · June",  amount: "$3,000.00", status: "Paid"}]},
+    "NS-1003": {subject: "Reports loading slowly", customer: "Kestrel Logistics", segment: "Pro", contact: "Tom Becker", pri: "P3", status: "Pending", area: "Reporting", when: "Aug 5", arr: "$48,000",
+      body: "Dashboards that normally load in under 10 seconds are taking 60–90 seconds this week. They eventually load, but our morning reporting process is delayed.", charges: []},
+    "NS-1004": {subject: "Scheduled PDF exports", customer: "Arbor Capital", segment: "Enterprise", contact: "Lena Vogel", pri: "P4", status: "Open", area: "Reporting", when: "Aug 5", arr: "$210,000",
+      body: "Can Northstar automatically email a PDF of a dashboard to executives every Monday morning? I cannot find a scheduling option.", charges: []},
+    "NS-1006": {subject: "Suspicious password-reset email", customer: "Meridian Bank", segment: "Enterprise", contact: "Chris Odum", pri: "P1", status: "Open", area: "Identity", when: "Aug 6", arr: "$320,000",
+      body: "Several employees received password-reset emails they did not request. The links appear to point to a domain that is not northstar.example. Is this legitimate?", charges: []},
+  },
+  log: [], user: null,
+});
+let S = JSON.parse(localStorage.getItem("nh") || "null") || fresh();
+const save = () => localStorage.setItem("nh", JSON.stringify(S));
+window.helpdesk = { state: () => S, reset: () => { S = fresh(); save(); route(); } };
+const $ = h => document.getElementById("app").innerHTML = h;
+const toast = t => { const d = document.createElement("div"); d.className = "toast"; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2500); };
+const pill = s => `<span class="pill ${s.toLowerCase()}">${s}</span>`;
+
+function route() {
+  document.body.classList.toggle("signedout", !S.user);
+  if (!S.user) return login();
+  const id = location.hash.split("/")[2];
+  return id && S.tickets[id] ? ticket(id) : inbox();
+}
+
+function login(err = "") {
+  $(`<div class="card login"><div style="font-weight:700;font-size:18px;margin-bottom:4px">✦ Northstar <span style="color:var(--brand)">Support</span></div>
+    <p style="color:var(--mute);margin-top:0">Sign in to your agent workspace</p>
+    <form onsubmit="signIn(); return false">
+    <label for="email">Work email</label><input id="email" type="email" placeholder="you@northstar.example">
+    <label for="password">Password</label><input id="password" type="password" placeholder="••••••••">
+    ${err ? `<p style="color:#b91c1c">${err}</p>` : ""}
+    <button type="submit" class="btn primary" style="width:100%">Sign in</button></form>
+    <p style="text-align:center;margin-bottom:0"><a href="#/" style="color:var(--brand)">Forgot password?</a> · <a href="#/" style="color:var(--brand)">Use SSO</a> · <a href="runbook.html" style="color:var(--brand)">Agent runbook</a></p></div>`);
+}
+
+function signIn() {
+  const e = document.getElementById("email").value.trim(), p = document.getElementById("password").value;
+  if (btoa(e + ":" + p) !== "YWdlbnRAbm9ydGhzdGFyLmV4YW1wbGU6T3Jpb24tNzQyOQ==") return login("Incorrect email or password.");   // no plaintext password in the page
+  S.user = e; S.log.push("login"); save(); route();
+}
+
+function inbox() {
+  $(`<div class="crumbs">Inbox</div><div class="card"><table>
+    <tr><th>Ticket</th><th>Subject</th><th>Customer</th><th>Priority</th><th>Status</th><th>Updated</th></tr>
+    ${Object.entries(S.tickets).map(([k, t]) => `<tr class="row"><td>${k}</td><td><a href="#/ticket/${k}"><b>${t.subject}</b></a><br><small style="color:var(--mute)">${t.area}</small></td>
+      <td>${t.customer}<br><small style="color:var(--mute)">${t.segment}</small></td><td class="${t.pri.toLowerCase()}">${t.pri}</td><td>${pill(t.status)}</td><td>${t.when}</td></tr>`).join("")}
+  </table></div>`);
+}
+
+function ticket(id) {
+  const t = S.tickets[id];
+  $(`<div class="crumbs"><a href="#/">Inbox</a> › ${id}</div>
+  <div class="grid">
+    <div class="card">
+      <div class="panel" style="display:flex;align-items:center;gap:10px"><h2 style="margin:0;font-size:18px;flex:1">${t.subject}</h2>${pill(t.status)}
+        <button class="btn sm" onclick="act('${id}','assign')">Assign to me</button>
+        <button class="btn sm" onclick="act('${id}','escalate')">Escalate</button>
+        <button class="btn sm" onclick="act('${id}','merge')">Merge</button></div>
+      <div class="msg"><div class="avatar">${t.contact[0]}</div><div><div class="who">${t.contact} <span class="when">· ${t.customer} · ${t.when}, 9:12 AM</span></div><p>${t.body}</p></div></div>
+      <div class="msg"><div class="avatar" style="background:#e5e7eb;color:#374151">⚙</div><div><div class="who">Northstar Bot <span class="when">· ${t.when}, 9:12 AM</span></div><p>Thanks for contacting Northstar Support. Your ticket ${id} has been received.</p></div></div>
+      <div class="panel" style="border:0"><textarea placeholder="Reply to ${t.contact}…"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px"><button class="btn">Apply macro</button><button class="btn">Internal note</button>
+        <span style="flex:1"></span><button class="btn" onclick="act('${id}','pending')">Submit as Pending</button><button class="btn primary" onclick="act('${id}','solve')">Submit as Solved</button></div></div>
+    </div>
+    <div class="card">
+      <div class="panel"><h4>Customer</h4><div class="kv"><span>Account</span><span>${t.customer}</span></div><div class="kv"><span>Plan</span><span>${t.segment}</span></div>
+        <div class="kv"><span>ARR</span><span>${t.arr}</span></div><div class="kv"><span>Contact</span><span>${t.contact}</span></div></div>
+      <div class="panel"><h4>Ticket</h4><div class="kv"><span>Priority</span><span class="${t.pri.toLowerCase()}">${t.pri}</span></div><div class="kv"><span>Area</span><span>${t.area}</span></div>
+        <div class="kv"><span>Channel</span><span>Email</span></div></div>
+      ${t.charges.length ? `<div class="panel"><h4>Billing · recent charges</h4><table>${t.charges.map(c => `<tr>
+        <td style="padding:6px 0"><b>${c.id}</b><br><small style="color:var(--mute)">${c.date} · ${c.desc}</small>${c.flag ? `<br><span class="pill pending">⚠ ${c.flag}</span>` : ""}</td><td>${c.amount}</td>
+        <td>${c.status === "Paid" ? `<button class="btn sm" onclick="refund('${id}','${c.id}')">Refund</button>` : `<small style="color:var(--mute)">Refunded</small>`}</td></tr>`).join("")}</table></div>` : ""}
+    </div>
+  </div>`);
+}
+
+function refund(id, cid) {
+  S.tickets[id].charges.find(c => c.id === cid).status = "Refunded";
+  S.log.push(`refund ${cid}`); save(); ticket(id); toast(`Refund issued for ${cid}`);
+}
+
+function act(id, kind) {
+  const t = S.tickets[id];
+  if (kind === "solve") t.status = "Solved"; if (kind === "pending") t.status = "Pending";
+  S.log.push(`${kind} ${id}`); save(); ticket(id); toast(`${id}: ${kind}`);
+}
+
+window.onhashchange = route; route();
+</script></body></html>
